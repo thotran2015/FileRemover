@@ -29,7 +29,7 @@ def delete_old_files(directory: str, days_old: int):
 
 def main():
     download_directory = "/Users/thotran/Downloads"
-    days_threshold = 14
+    days_threshold = 7
     delete_old_files(download_directory, days_threshold)
 
 
