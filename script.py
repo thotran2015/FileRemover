@@ -16,6 +16,7 @@ def delete_old_files(directory: str, days_old: int):
             file_age_secs = cur_time - os.path.getatime(filepath)
             if file_age_secs/(3600*24) > days_old:
                 files_to_delete.append(filepath)
+        # TODO: delete directories
 
     # Notify users before delete files
     title = f"Warning: About to delete {len(files_to_delete)} files in {directory}"
