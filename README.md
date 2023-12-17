@@ -1,7 +1,5 @@
 # FileRemover
-For unix-based OS, schedule a cron job to run this script to remove files weekly
+For unix-based OS, schedule a cron job to run the script at 10pm every Sunday using `crontab -e `
 ```
-crontab -e 
-Add this weekly cron job:
-0 0 * * 0 /path/to/python /path/to/FileRemover/script.py
+0 22 * * 0 /path/to/python /path/to/FileRemover/script.py
 ```
