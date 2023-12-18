@@ -4,7 +4,7 @@ import tempfile
 import os
 from datetime import datetime, timedelta
 from script import delete_old_files, notify, MAC_OS
-from unittest.mock import patch
+from unittest import mock
 import platform
 
 
@@ -24,7 +24,7 @@ class TestFileRemoverMethods(unittest.TestCase):
         os.utime(filepath, (mod_time.timestamp(), mod_time.timestamp()))
         return filepath
 
-    @patch('subprocess.run')
+    @mock.patch('subprocess.run')
     def test_notify(self, mock_subprocess_run):
         if platform.system() == MAC_OS:
             title = "Warning: File Deletion in 10s",
@@ -33,16 +33,21 @@ class TestFileRemoverMethods(unittest.TestCase):
             expected_cmd = ['osascript', '-e', f'display dialog "{msg}" buttons {{"Cancel", "OK"}} default button "OK" with title "{title}"']
             mock_subprocess_run.assert_called_once_with(expected_cmd)
 
-    @patch('script.notify')
+    @mock.patch('script.notify')
     def test_delete_old_files(self, mock_notify):
         file1 = self.create_test_file("file1.txt", 5)
         file2 = self.create_test_file("file2.txt", 8)
+        mock_notify.return_value = 0
         delete_old_files(self.test_dir, days_old=7)
 
         if platform.system() == MAC_OS:
-            title = f"Warning: About to delete 1 files in {self.test_dir}"
-            msg = f"Do you want to delete files {[file2]}?"
-            mock_notify.assert_called_with(title, msg)
+            title1 = f"Warning: About to delete 1 files in {self.test_dir}"
+            msg1 = f"Do you want to delete files {[file2]}?"
+            notify_call1 = mock.call(title1, msg1)
+            title2 = f'Warning: About to delete 0 subdirectories in {self.test_dir}'
+            msg2 = "Do you want to delete directories []?"
+            notify_call2 = mock.call(title2, msg2)
+            mock_notify.assert_has_calls([notify_call1, notify_call2], any_order=False)
 
         # Make sure file1 is not deleted but file2 is
         self.assertTrue(os.path.exists(file1))
