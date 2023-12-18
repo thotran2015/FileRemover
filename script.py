@@ -1,10 +1,16 @@
 import os
 import time
 import subprocess
+import platform
+
+MAC_OS = "Darwin"
 
 
 def notify(title, msg):
-    subprocess.run(['osascript', '-e', f'display dialog "{msg}" buttons {{"Cancel", "OK"}} default button "OK" with title "{title}"'])
+    current_os = platform.system()
+    if current_os == MAC_OS:  # macOS
+        # Use AppleScript to create interactive notification for file deletion warning
+        subprocess.run(['osascript', '-e', f'display dialog "{msg}" buttons {{"Cancel", "OK"}} default button "OK" with title "{title}"'])
 
 
 def delete_old_files(directory: str, days_old: int):
