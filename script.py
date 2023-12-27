@@ -3,8 +3,18 @@ import shutil
 import time
 import subprocess
 import platform
+from datetime import datetime
+import logging
+
+# Configure the logging module to output to the console
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 MAC_OS = "Darwin"
+HOME_DIRECTORY = os.path.expanduser('~')
+LAST_RUN_TIMESTAMP_FILE = f"{HOME_DIRECTORY}/PycharmProjects/FileRemover/last_run_ts.txt"
+TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+SCRIPT_SCHEDULE = 7  # run script every 7 days
+FILES_TO_OMIT = {".DS_Store"}
 
 
 def create_dialog(title, msg):
@@ -22,19 +32,43 @@ def create_notification(title, msg):
         subprocess.run(['osascript', '-e', f'display notification "{msg}" with title "{title}"'])
 
 
-def move_files_to_trash(directory: str, days_old: int, trash_path: str):
+def trash_files(directories: list[str], days_old: int, trash_path: str):
+    cur_time = datetime.now()
+    if os.path.exists(LAST_RUN_TIMESTAMP_FILE):
+        with open(LAST_RUN_TIMESTAMP_FILE, "r") as f:
+            ts_string = f.read()
+            last_run_ts = datetime.strptime(ts_string, TIME_FORMAT)
+            if (cur_time - last_run_ts).days < SCRIPT_SCHEDULE:
+                logging.info(f"Already ran the cleanup script this week for the directories: {directories}. Last run was '{last_run_ts}'")
+                return
+
+    for directory in directories:
+        move_files_to_trash(directory, days_old, trash_path)
+
+    with open(LAST_RUN_TIMESTAMP_FILE, "w") as f:
+        f.write(cur_time.strftime(TIME_FORMAT))
+
+
+def move_files_to_trash(directory: str, days_old: int, trash_path: str) -> bool:
     if not os.path.exists(directory):
-        print(f"directory does not exist: {directory}")
-        return
+        logging.info(f"Input directory does not exist: {directory}")
+        return False
+
     cur_time = time.time()
     num_files_moved = 0
     for filename in os.listdir(directory):
+        if filename in FILES_TO_OMIT:
+            continue
         filepath = os.path.join(directory, filename)
         file_age_secs = cur_time - os.path.getatime(filepath)
         if file_age_secs/(3600*24) > days_old:
-            shutil.move(filepath, trash_path)
+            dest_path = os.path.join(trash_path, filename)
+            shutil.move(filepath, dest_path)
             num_files_moved += 1
-    create_notification("Files Moved to Trash", f'{num_files_moved} files are moved from {directory} to trash')
+
+    create_notification("Files Moved to Trash", f'{num_files_moved} files are moved from {directory} to Trash')
+    logging.info(f'{num_files_moved} files are moved from {directory} to Trash')
+    return True
 
 
 def delete_old_files(directory: str, days_old: int):
@@ -75,14 +109,11 @@ def delete_old_files(directory: str, days_old: int):
 
 
 def main():
-    home_directory = os.path.expanduser('~')
-    trash_path = os.path.join(home_directory, ".Trash")
-    download_directory = os.path.join(home_directory, "Downloads")
-    desktop_directory = os.path.join(home_directory, "Desktop")
+    trash_path = os.path.join(HOME_DIRECTORY, ".Trash")
+    download_directory = os.path.join(HOME_DIRECTORY, "Downloads")
+    desktop_directory = os.path.join(HOME_DIRECTORY, "Desktop")
     days_threshold = 7
-    # delete_old_files(download_directory, days_threshold)
-    move_files_to_trash(download_directory, days_threshold, trash_path)
-    move_files_to_trash(desktop_directory, days_threshold, trash_path)
+    trash_files([download_directory, desktop_directory], days_threshold, trash_path)
 
 
 if __name__ == "__main__":
