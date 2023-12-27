@@ -77,7 +77,7 @@ def delete_old_files(directory: str, days_old: int):
 def main():
     home_directory = os.path.expanduser('~')
     trash_path = os.path.join(home_directory, ".Trash")
-    download_directory = os.path.join(home_directory, "Download")
+    download_directory = os.path.join(home_directory, "Downloads")
     desktop_directory = os.path.join(home_directory, "Desktop")
     days_threshold = 7
     # delete_old_files(download_directory, days_threshold)
