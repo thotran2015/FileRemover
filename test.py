@@ -64,11 +64,11 @@ class TestScript(unittest.TestCase):
         home_directory = os.path.expanduser('~')
         trash_path = os.path.join(home_directory, ".Trash")
         move_files_to_trash(self.test_dir, 7, trash_path)
-        mock_move.assert_called_once_with(file2, trash_path)
+        mock_move.assert_called_once_with(file2, os.path.join(trash_path, os.path.basename(file2)))
 
         if platform.system() == MAC_OS:
             title = "Files Moved to Trash"
-            msg = f'1 files are moved from {self.test_dir} to trash'
+            msg = f'1 files are moved from {self.test_dir} to Trash'
             mock_create_notification.assert_called_once_with(title, msg)
         # make sure only file 2 is moved
         self.assertTrue(os.path.exists(file1))

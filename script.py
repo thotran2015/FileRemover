@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import shutil
 import time
@@ -5,13 +7,14 @@ import subprocess
 import platform
 from datetime import datetime
 import logging
+import argparse
 
 # Configure the logging module to output to the console
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 MAC_OS = "Darwin"
-HOME_DIRECTORY = os.path.expanduser('~')
-LAST_RUN_TIMESTAMP_FILE = f"{HOME_DIRECTORY}/PycharmProjects/FileRemover/last_run_ts.txt"
+SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+LAST_RUN_TIMESTAMP_FILE = os.path.join(SCRIPT_DIRECTORY, "last_run_ts.txt")
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 SCRIPT_SCHEDULE = 7  # run script every 7 days
 FILES_TO_OMIT = {".DS_Store"}
@@ -109,11 +112,12 @@ def delete_old_files(directory: str, days_old: int):
 
 
 def main():
-    trash_path = os.path.join(HOME_DIRECTORY, ".Trash")
-    download_directory = os.path.join(HOME_DIRECTORY, "Downloads")
-    desktop_directory = os.path.join(HOME_DIRECTORY, "Desktop")
-    days_threshold = 7
-    trash_files([download_directory, desktop_directory], days_threshold, trash_path)
+    parser = argparse.ArgumentParser(description='A script to clean up directories with command-line arguments')
+    parser.add_argument('--trash', '-t', help='Path to the trash folder, i.e., /home/.Trash')
+    parser.add_argument('--directories', '-d', nargs='+', help='A list of directories to clean up')
+    parser.add_argument('--days', '-a', type=int, help='Minimum age (days old) of files to trash')
+    args = parser.parse_args()
+    trash_files(args.directories, args.days, args.trash)
 
 
 if __name__ == "__main__":
