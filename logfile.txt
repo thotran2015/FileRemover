@@ -1,1 +1,0 @@
-2023-12-27 17:05:00,847 - root - INFO - Already ran the cleanup script this week for the directories: ['/Users/ttho/Downloads', '/Users/ttho/Desktop']. Last run was '2023-12-27 17:00:00'
