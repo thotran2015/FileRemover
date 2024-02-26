@@ -8,6 +8,7 @@ import platform
 from datetime import datetime
 import logging
 import argparse
+from typing import Optional
 
 # Configure the logging module to output to the console
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -35,16 +36,22 @@ def create_notification(title, msg):
         subprocess.run(['osascript', '-e', f'display notification "{msg}" with title "{title}"'])
 
 
-def trash_files(directories: list[str], days_old: int, trash_path: str):
-    cur_time = datetime.now()
-    if os.path.exists(LAST_RUN_TIMESTAMP_FILE):
+def get_last_run_timestamp() -> Optional[datetime]:
+    try:
         with open(LAST_RUN_TIMESTAMP_FILE, "r") as f:
             ts_string = f.read()
             last_run_ts = datetime.strptime(ts_string, TIME_FORMAT)
-            if (cur_time - last_run_ts).days < SCRIPT_SCHEDULE:
-                logging.info(f"Already ran the cleanup script this week for the directories: {directories}. Last run was '{last_run_ts}'")
-                return
+            return last_run_ts
+    except Exception as e:
+        logging.error(f"Error occurred while reading last run timestamp file: {e}")
 
+
+def trash_files(directories: list[str], days_old: int, trash_path: str):
+    cur_time = datetime.now()
+    last_run_ts = get_last_run_timestamp()
+    if last_run_ts and (cur_time - last_run_ts).days < SCRIPT_SCHEDULE:
+        logging.info(f"Already ran the cleanup script in the last {SCRIPT_SCHEDULE} for the directories: {directories}. Last run was '{last_run_ts}'")
+        return
     for directory in directories:
         move_files_to_trash(directory, days_old, trash_path)
 
@@ -59,19 +66,22 @@ def move_files_to_trash(directory: str, days_old: int, trash_path: str) -> bool:
 
     cur_time = time.time()
     num_files_moved = 0
-    for filename in os.listdir(directory):
-        if filename in FILES_TO_OMIT:
-            continue
-        filepath = os.path.join(directory, filename)
-        file_age_secs = cur_time - os.path.getatime(filepath)
-        if file_age_secs/(3600*24) > days_old:
-            dest_path = os.path.join(trash_path, filename)
-            shutil.move(filepath, dest_path)
-            num_files_moved += 1
-
-    create_notification("Files Moved to Trash", f'{num_files_moved} files are moved from {directory} to Trash')
-    logging.info(f'{num_files_moved} files are moved from {directory} to Trash')
-    return True
+    try:
+        for filename in os.listdir(directory):
+            if filename in FILES_TO_OMIT:
+                continue
+            filepath = os.path.join(directory, filename)
+            file_age_secs = cur_time - os.path.getatime(filepath)
+            if file_age_secs/(3600*24) > days_old:
+                dest_path = os.path.join(trash_path, filename)
+                shutil.move(filepath, dest_path)
+                num_files_moved += 1
+        create_notification("Files Moved to Trash", f'{num_files_moved} files are moved from {directory} to Trash')
+        logging.info(f'{num_files_moved} files are moved from {directory} to Trash')
+        return True
+    except Exception as e:
+        logging.error(f"Error occurred while moving files to trash: {e}")
+        return False
 
 
 def delete_old_files(directory: str, days_old: int):
