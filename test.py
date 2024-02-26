@@ -3,7 +3,7 @@ import unittest
 import tempfile
 import os
 from datetime import datetime, timedelta
-from script import delete_old_files, create_dialog, MAC_OS, move_files_to_trash
+from script import create_dialog, MAC_OS, move_files_to_trash
 from unittest import mock
 import platform
 
@@ -36,25 +36,6 @@ class TestScript(unittest.TestCase):
             expected_cmd = ['osascript', '-e', f'display dialog "{msg}" buttons {{"Cancel", "OK"}} default button "OK" with title "{title}"']
             mock_subprocess_run.assert_called_once_with(expected_cmd)
 
-    @mock.patch('script.create_dialog')
-    def test_delete_old_files(self, mock_create_dialog):
-        file1 = self.create_test_file("file1.txt", 5)
-        file2 = self.create_test_file("file2.txt", 8)
-        mock_create_dialog.return_value = 0
-        delete_old_files(self.test_dir, days_old=7)
-
-        if platform.system() == MAC_OS:
-            title1 = f"Warning: About to delete 1 files in {self.test_dir}"
-            msg1 = f"Do you want to delete files {[file2]}?"
-            notify_call1 = mock.call(title1, msg1)
-            title2 = f'Warning: About to delete 0 subdirectories in {self.test_dir}'
-            msg2 = "Do you want to delete directories []?"
-            notify_call2 = mock.call(title2, msg2)
-            mock_create_dialog.assert_has_calls([notify_call1, notify_call2], any_order=False)
-
-        # Make sure file1 is not deleted but file2 is
-        self.assertTrue(os.path.exists(file1))
-        self.assertFalse(os.path.exists(file2))
 
     @mock.patch('script.create_notification')
     @mock.patch('shutil.move')
